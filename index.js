@@ -1,4 +1,4 @@
-const longText = `요요요`;
+const longText = `밑줄 긋기의 효과를 얻기 위한 방법에는 몇 가지가 있다. 우선 글을 읽는 중에는 문장이나 문단에 나타난 정보 간의 상대적  중요도를 결정할 때까지 밑줄 긋기를 잠시 늦추었다가 주요한  정보에 밑줄 긋기를 한다. 이때 주요한 정보는 독서 목적에 따라 달라질 수 있다는 점을 고려한다. 또한 자신만의 밑줄 긋기 표시 체계를 세워 밑줄 이외에 다른 기호도 사용할 수 있다. 밑줄  긋기 표시 체계는 밑줄 긋기가 필요한 부분에 특정 기호를  사용하여 표시하기로 독자가 미리 정해 놓는 것이다. 예를 들면 하나의 기준으로 묶을 수 있는 정보들에 동일한 기호를 붙이거나 순차적인 번호를 붙이기로 하는 것 등이다. 이는 기본적인 밑줄 긋기를 확장한 방식이라 할 수 있다.  `;
 
 let startBtn = document.getElementById("startBtn");
 let textDisplay = document.getElementById("textDisplay");
@@ -22,7 +22,7 @@ function startGame() {
     result.textContent = '';
     timerDisplay.style.display = "block"; // 타이머 보이기
     currentText = longText;
-    textDisplay.textContent = currentText;
+    textDisplay.textContent = currentText; // 제시된 긴 글을 그대로 표시
     startTime = new Date().getTime();
     startBtn.style.display = "none"; // 게임 시작 버튼 숨기기
     startTimer();
@@ -47,7 +47,21 @@ function startTimer() {
 
 function checkTyping() {
     let typedText = typingInput.value;
-    
+    let displayText = '';
+
+    // 사용자가 입력한 텍스트와 제시된 텍스트를 비교하여 오타 표시
+    for (let i = 0; i < typedText.length; i++) {
+        if (typedText[i] === currentText[i]) {
+            displayText += `<span class="correct">${typedText[i]}</span>`; // 올바른 글자는 검정색으로 표시
+        } else {
+            displayText += `<span class="incorrect">${typedText[i]}</span>`; // 오타는 빨간색으로 표시
+        }
+    }
+
+    // 타이핑한 글자만 빨간색으로 표시하고, 입력창 내에서만 보이도록 함
+    typingInput.style.color = "black"; // 타이핑박스의 기본 텍스트 색상은 검정색
+
+    // 타이핑이 완료되면 게임 종료
     if (typedText === currentText) {
         endTime = new Date().getTime();
         let timeTaken = (endTime - startTime) / 1000; // 소요 시간(초)
