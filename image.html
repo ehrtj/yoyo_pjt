@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문제와 이미지 업로드</title>
+    <style>
+        #drop-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            width: 400px;
+            height: 200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        label {
+            font-size: 20px;
+            color: #007BFF;
+            cursor: pointer;
+        }
+        #preview-image {
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 200px;
+        }
+        #upload-status {
+            color: green;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        /* 입력 공간 크기 조정 */
+        input[type="number"], input[type="text"], textarea {
+            width: 100%; /* 너비를 100%로 설정하여 최대화 */
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            height: 150px; /* 문제를 입력할 때 높이를 더 크게 설정 */
+        }
+
+        button {
+            font-size: 16px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>문제와 이미지를 업로드하세요</h2>
+    
+    <!-- 이미지 드래그 앤 드롭 영역 -->
+    <div id="drop-area">
+        <p>여기에 이미지를 드래그 앤 드롭 하세요</p>
+        <label for="file-input">또는 파일 선택</label>
+        <input type="file" id="file-input" accept="image/*">
+    </div>
+
+    <!-- 이미지 미리보기 -->
+    <img id="preview-image" class="hidden" src="" alt="미리보기 이미지">
+
+    <!-- 업로드 상태 메시지 -->
+    <div id="upload-status" class="hidden"></div>
+
+    <!-- 문제 입력 폼 -->
+    <form id="question-form">
+        <label for="year">연도:</label>
+        <input type="number" id="year" name="year" required><br><br>
+
+        <label for="number">문제 번호:</label>
+        <input type="number" id="number" name="number" required><br><br>
+
+        <label for="subject">과목:</label>
+        <input type="text" id="subject" name="subject" required><br><br>
+
+        <label for="question">문제:</label>
+        <textarea id="question" name="question" required></textarea><br><br>
+
+        <label for="options">옵션 (JSON 형태로 작성):</label>
+        <textarea id="options" name="options" required></textarea><br><br>
+
+        <label for="answer">정답:</label>
+        <input type="text" id="answer" name="answer" required><br><br>
+
+        <button type="submit">문제 추가</button>
+    </form>
+
+    <script>
+        // 드래그 앤 드롭 영역 처리
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const previewImage = document.getElementById('preview-image');
+        const uploadStatus = document.getElementById('upload-status');
+
+        // 이미지 드래그 앤 드롭 처리
+        dropArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '#f0f0f0';  // 드래그 시 배경색 변화
+        });
+
+        dropArea.addEventListener('dragleave', function() {
+            dropArea.style.backgroundColor = '';  // 드래그를 떠날 때 배경색 복원
+        });
+
+        dropArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '';  // 배경색 복원
+            const file = e.dataTransfer.files[0]; // 드래그된 첫 번째 파일
+            if (file && file.type.startsWith('image/')) {
+                previewFile(file);  // 이미지 미리보기 함수 호출
+                fileInput.files = e.dataTransfer.files; // 파일 입력에 파일 추가
+            } else {
+                alert('이미지 파일만 업로드할 수 있습니다.');
+            }
+        });
+
+        // 파일 선택 시 이미지 미리보기
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                previewFile(file);  // 이미지 미리보기 함수 호출
+            }
+        });
+
+        // 이미지 미리보기 함수
+        function previewFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewImage.classList.remove('hidden');  // 이미지 보이게 설정
+                uploadStatus.textContent = '이미지 준비 완료';
+                uploadStatus.classList.remove('hidden'); // 상태 메시지 표시
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 파일 업로드 폼 처리
+        document.getElementById('question-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const year = document.getElementById('year').value;
+            const number = document.getElementById('number').value;
+            const subject = document.getElementById('subject').value;
+            const question = document.getElementById('question').value;
+            const options = document.getElementById('options').value;
+            const answer = document.getElementById('answer').value;
+
+            const formData = new FormData();
+            formData.append('image', document.getElementById('file-input').files[0]);
+            formData.append('year', year);
+            formData.append('number', number);
+            formData.append('subject', subject);
+            formData.append('question', question);
+            formData.append('options', JSON.parse(options));  // JSON 형태로 옵션
+            formData.append('answer', answer);
+
+            fetch('http://localhost:3000/add-question', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert('문제 추가 성공');
+                    uploadStatus.textContent = '업로드 성공';
+                    uploadStatus.style.color = 'green';  // 성공 메시지
+                } else {
+                    alert('문제 추가 실패');
+                    uploadStatus.textContent = '업로드 실패';
+                    uploadStatus.style.color = 'red';  // 실패 메시지
+                    
+                    // 실패 시, 입력된 내용을 다시 채워넣기
+                    document.getElementById('year').value = year;
+                    document.getElementById('number').value = number;
+                    document.getElementById('subject').value = subject;
+                    document.getElementById('question').value = question;
+                    document.getElementById('options').value = options;
+                    document.getElementById('answer').value = answer;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                uploadStatus.textContent = '업로드 중 오류 발생';
+                uploadStatus.style.color = 'red';
+            });
+        });
+    </script>
+</body>
+</html>

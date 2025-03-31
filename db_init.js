@@ -2,15 +2,16 @@ const sqlite3 = require('sqlite3').verbose();
 const xlsx = require('xlsx');
 const fs = require('fs');
 
-// SQLite 데이터베이스 연결
-const db = new sqlite3.Database('./quiz.db', (err) => {
+// SQLite DB 연결
+const db = new sqlite3.Database('./questions.db', (err) => {
     if (err) {
-      console.error('데이터베이스 연결 실패:', err.message);
+      console.error('DB 연결 오류:', err.message);
     } else {
-      console.log('SQLite 데이터베이스 연결 성공');
+      console.log('DB 연결 성공');
     }
   });
-
+  
+  // 테이블 생성 코드 (한 번만 실행)
   db.serialize(() => {
     db.run(`
       CREATE TABLE IF NOT EXISTS questions (
@@ -19,8 +20,14 @@ const db = new sqlite3.Database('./quiz.db', (err) => {
         number INTEGER NOT NULL,
         subject TEXT NOT NULL,
         question TEXT NOT NULL,
-        options TEXT NOT NULL,  -- JSON 형태로 저장
+        options TEXT NOT NULL,
         answer TEXT NOT NULL
-      )
-    `);
- });
+      );
+    `, (err) => {
+      if (err) {
+        console.error('테이블 생성 오류:', err.message);
+      } else {
+        console.log('questions 테이블이 성공적으로 생성되었습니다.');
+      }
+    });
+  });
