@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>긴 글 타자 연습</title>
+    <title>명언 타자 연습</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,26 +18,27 @@
         }
 
         #textDisplay {
-            font-size: 18px;
+            font-size: 22px;
             margin-bottom: 20px;
-            padding: 10px;
+            padding: 20px;
             background-color: #e0e0e0;
             border-radius: 5px;
-            height: 200px;
+            height: 300px;
+            width: 60%;
             overflow-y: auto;
-            display: none; /* 게임 시작 전에는 보이지 않게 설정 */
+            display: none;
         }
 
         .typingInput {
-            font-size: 18px;
+            font-size: 22px;
             padding: 10px;
-            width: 100%;
-            height: 100px;
+            width: 60%;
+            height: 150px;
             margin-top: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
             resize: none;
-            display: none; /* 게임 시작 전에는 보이지 않게 설정 */
+            display: none;
         }
 
         .result {
@@ -64,25 +65,48 @@
             font-size: 24px;
             margin-top: 20px;
             font-weight: bold;
-            display: none; /* 게임 시작 전에는 보이지 않게 설정 */
+            display: none;
         }
 
         .incorrect {
-            color: red; /* 오타 부분은 빨간색 */
+            color: red;
         }
+
+        .correct {
+            color: green;
+        }
+
+        .language-selection {
+            margin-bottom: 30px;
+        }
+
+        .language-selection button {
+            margin: 10px;
+        }
+
+        #startBtn {
+            display: none; /* 게임 시작 전까지 숨기기 */
+        }
+
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>긴 글 타자 연습 게임</h1>
-        <div id="textDisplay" class="textDisplay"></div>
-        <textarea id="typingInput" class="typingInput" placeholder="여기에 타이핑하세요..."></textarea>
+        <h1>명언 타자 연습</h1>
+        
+        <!-- 언어 선택 버튼 -->
+        <div class="language-selection">
+            <button id="englishBtn" class="startBtn">영어 명언 타자 연습</button>
+            <button id="koreanBtn" class="startBtn">한국어 명언 타자 연습</button>
+        </div>
+
+        <div id="textDisplay"></div>
+        <textarea id="typingInput" class="typingInput" placeholder="여기에 타이핑하세요..." oninput="checkTyping()"></textarea>
         <div id="result" class="result"></div>
         <div id="timer"></div>
         <button id="startBtn" class="startBtn">게임 시작</button>
     </div>
 
-    <!-- index.js 파일을 불러옵니다. -->
     <script src="index.js"></script>
 </body>
 </html>

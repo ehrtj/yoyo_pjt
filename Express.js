@@ -1,57 +1,42 @@
 const express = require('express');
-const axios = require('axios');
-const mongoose = require('mongoose');
+const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');  // CORS 모듈 불러오기
 
+const app = express();  // app 객체 먼저 선언
 
+// CORS 미들웨어 설정
+app.use(cors());  // 모든 요청에 대해 CORS 허용
 
-
-// MongoDB 연결 설정
-mongoose.connect('mongodb://localhost:27017/quotesDB')
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
-
-// 데이터베이스 모델 정의
-const quoteSchema = new mongoose.Schema({
-  quote: String,
-  author: String,
-  date: { type: Date, default: Date.now }
+const db = new sqlite3.Database('./quotesDB.db', (err) => {
+  if (err) {
+    console.error('데이터베이스 연결 오류:', err.message);
+  } else {
+    console.log('SQLite 연결 성공');
+  }
 });
 
-const Quote = mongoose.model('Quote', quoteSchema);
-
-const app = express();
 const port = 3000;
 
-// ZenQuotes API URL
-const apiUrl = 'https://zenquotes.io/api/random';
-
-// ZenQuotes API 호출 후 DB에 저장하는 함수
-const fetchAndStoreQuote = async () => {
-  try {
-    const response = await axios.get(apiUrl);
-    const quoteData = response.data[0]; // 첫 번째 인용문을 가져옴
-
-    // DB에 저장
-    const newQuote = new Quote({
-      quote: quoteData.q,
-      author: quoteData.a
-    });
-
-    await newQuote.save(); // MongoDB에 저장
-    console.log('Quote saved to database');
-  } catch (error) {
-    console.error('Error fetching quote:', error);
-  }
-};
-
-// 서버에서 ZenQuotes API 데이터를 저장하는 라우터
-app.get('/save-quote', (req, res) => {
-  fetchAndStoreQuote()
-    .then(() => res.send('Quote saved successfully!'))
-    .catch((error) => res.status(500).send('Error saving quote.'));
+// /random-quote API - 랜덤 명언 가져오기
+app.get('/random-quote', (req, res) => {
+  const query = 'SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1'; // 기존의 quotes 테이블 사용
+  console.log('Executing query:', query); // 쿼리 실행 로그 출력
+  
+  db.get(query, [], (err, row) => {
+    if (err) {
+      console.error('데이터 조회 오류:', err.message); // 오류 메시지 출력
+      res.status(500).json({ error: '명언을 가져오는 데 실패했습니다.' });
+    } else {
+      if (row) {
+        console.log('Fetched quote:', row); // 가져온 명언 출력
+        res.json(row); // 명언 JSON 형식으로 반환
+      } else {
+        res.status(404).json({ error: '명언을 찾을 수 없습니다.' }); // 명언이 없으면 404 반환
+      }
+    }
+  });
 });
 
-// 서버 시작
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });

@@ -1,6 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
+const https = require('https'); // https 모듈을 가져옴
 
 // SQLite 데이터베이스 연결 설정
 const db = new sqlite3.Database('./quotesDB.db', (err) => {
@@ -25,53 +26,45 @@ db.serialize(() => {
   )`);
 });
 
-// 여러 명언 API URL
-const apiUrls = [
-  'https://zenquotes.io/api/random', // ZenQuotes API
-  'https://quotes.rest/qod',         // Quotes API (day of the quote)
-  'https://quote-garden.herokuapp.com/api/v3/quotes/random' // Quote Garden API
-];
+// Quotable API URL (한 개의 랜덤 명언을 받아옵니다)
+const apiUrl = 'https://api.quotable.io/random';
 
-// 여러 명언 API에서 데이터를 가져와 DB에 저장하는 함수
+// SSL 인증서 검증을 비활성화한 axios 인스턴스 생성
+const agent = new https.Agent({  
+  rejectUnauthorized: false  // SSL 인증서 검증을 하지 않도록 설정
+});
+
+const axiosInstance = axios.create({
+  httpsAgent: agent
+});
+
+// 한 번에 20개의 명언을 가져오는 함수
 const fetchAndStoreQuotes = async () => {
   try {
-    const apiPromises = apiUrls.map(url => axios.get(url).catch(() => null));  // 각 API에 요청 보내기
-    const responses = await Promise.all(apiPromises);
+    for (let i = 0; i < 20; i++) {
+      // API 요청을 한 번씩 보내서 명언을 받아옵니다.
+      const response = await axiosInstance.get(apiUrl); // SSL 인증서 검증을 비활성화한 axios 인스턴스를 사용
+      const quoteData = response.data; // 반환된 명언 데이터
 
-    responses.forEach(response => {
-      if (response && response.data) {
-        let quoteData;
-        
-        // 각 API의 응답 형태에 맞게 처리
-        if (response.data[0]) { // ZenQuotes
-          quoteData = response.data[0];
-        } else if (response.data.contents) { // Quotes API (day of the quote)
-          quoteData = response.data.contents.quotes[0];
-        } else if (response.data.data) { // Quote Garden API
-          quoteData = response.data.data[0];
+      // SQLite에 저장
+      const query = `INSERT INTO quotes (quote, author, date) VALUES (?, ?, ?)`;
+      db.run(query, [quoteData.content, quoteData.author, new Date().toISOString()], function (err) {
+        if (err) {
+          console.error('데이터 저장 오류:', err.message);
+        } else {
+          console.log(`명언 저장 완료, ID: ${this.lastID}`);
         }
-        
-        if (quoteData) {
-          const query = `INSERT INTO quotes (quote, author, date) VALUES (?, ?, ?)`;
-          db.run(query, [quoteData.q || quoteData.quote, quoteData.a || quoteData.author, new Date().toISOString()], function (err) {
-            if (err) {
-              console.error('데이터 저장 오류:', err.message);
-            } else {
-              console.log('명언 저장 완료, ID:', this.lastID);
-            }
-          });
-        }
-      }
-    });
+      });
+    }
   } catch (error) {
     console.error('API 호출 오류:', error);
   }
 };
 
-// API로 인용문 저장하기
-app.get('/save-quote', (req, res) => {
+// API로 여러 개의 명언을 저장하는 엔드포인트
+app.get('/save-quotes', (req, res) => {
   fetchAndStoreQuotes()
-    .then(() => res.send('Quotes saved successfully!'))
+    .then(() => res.send('20개의 명언이 성공적으로 저장되었습니다!'))
     .catch((error) => res.status(500).send('Error saving quotes.'));
 });
 

@@ -1,41 +1,78 @@
-const longText = `밑줄 긋기의 효과를 얻기 위한 방법에는 몇 가지가 있다. 우선 글을 읽는 중에는 문장이나 문단에 나타난 정보 간의 상대적  중요도를 결정할 때까지 밑줄 긋기를 잠시 늦추었다가 주요한  정보에 밑줄 긋기를 한다. 이때 주요한 정보는 독서 목적에 따라 달라질 수 있다는 점을 고려한다. 또한 자신만의 밑줄 긋기 표시 체계를 세워 밑줄 이외에 다른 기호도 사용할 수 있다. 밑줄  긋기 표시 체계는 밑줄 긋기가 필요한 부분에 특정 기호를  사용하여 표시하기로 독자가 미리 정해 놓는 것이다. 예를 들면 하나의 기준으로 묶을 수 있는 정보들에 동일한 기호를 붙이거나 순차적인 번호를 붙이기로 하는 것 등이다. 이는 기본적인 밑줄 긋기를 확장한 방식이라 할 수 있다.  `;
-
 let startBtn = document.getElementById("startBtn");
+let englishBtn = document.getElementById("englishBtn");
+let koreanBtn = document.getElementById("koreanBtn");
 let textDisplay = document.getElementById("textDisplay");
 let typingInput = document.getElementById("typingInput");
 let result = document.getElementById("result");
 let timerDisplay = document.getElementById("timer");
 
+startBtn.addEventListener("click", startGame);
+englishBtn.addEventListener("click", () => selectLanguage('en')); // 영어 명언 선택
+koreanBtn.addEventListener("click", () => selectLanguage('ko')); // 한국어 명언 선택
+
 let currentText = '';
 let startTime, endTime;
 let timerInterval;
 let timeLeft = 300; // 5분 (300초)
+let selectedLanguage = ''; // 선택된 언어
 
-startBtn.addEventListener("click", startGame);
-typingInput.addEventListener("input", checkTyping);
+// 언어 선택 함수
+function selectLanguage(language) {
+    selectedLanguage = language;
+    startBtn.style.display = "block"; // 게임 시작 버튼 보이기
+    englishBtn.style.display = "none"; // 영어 선택 버튼 숨기기
+    koreanBtn.style.display = "none"; // 한국어 선택 버튼 숨기기
 
-function startGame() {
-    typingInput.style.display = "block"; // 게임 시작 시 타이핑 입력창 보이기
-    textDisplay.style.display = "block"; // 게임 시작 시 긴 글 박스 보이기
+    // 명언을 가져와서 화면에 표시
+    fetchRandomQuote(); // 언어에 맞는 명언을 가져옵니다.
+}
+
+// 랜덤 명언 가져오는 함수
+async function fetchRandomQuote() {
+    try {
+        const url = selectedLanguage === 'en' ? 'http://127.0.0.1:3000/random-quote-en' : 'http://127.0.0.1:3000/random-quote-ko';
+        console.log('Fetching quote from:', url);  // 호출되는 URL을 콘솔에 출력
+        
+        const response = await fetch(url); // 선택한 언어의 API 호출
+        console.log('Response status:', response.status); // 응답 상태 코드 출력
+        
+        if (!response.ok) {
+            throw new Error('명언을 가져오는 데 실패했습니다.');
+        }
+        const data = await response.json();
+        console.log('Fetched quote:', data);  // 명언 데이터 출력
+        currentText = data.quote;  // 명언을 가져와 currentText에 저장
+        textDisplay.textContent = currentText; // 명언을 화면에 표시
+    } catch (error) {
+        console.error('fetch 오류:', error.message);  // 오류 메시지 출력
+        textDisplay.textContent = '명언을 가져오는 데 실패했습니다.'; // 실패한 경우 메시지 출력
+    }
+}
+
+// 게임 시작 함수
+async function startGame() {
+    typingInput.style.display = "block";
+    textDisplay.style.display = "block";
     typingInput.value = '';
     typingInput.disabled = false;
     result.textContent = '';
-    timerDisplay.style.display = "block"; // 타이머 보이기
-    currentText = longText;
-    textDisplay.textContent = currentText; // 제시된 긴 글을 그대로 표시
+    timerDisplay.style.display = "block";
+    
     startTime = new Date().getTime();
-    startBtn.style.display = "none"; // 게임 시작 버튼 숨기기
+    startBtn.style.display = "none"; // 게임 시작 후 버튼 숨기기
     startTimer();
     typingInput.focus();
 }
 
+// 타이머 시작 함수
 function startTimer() {
     timerInterval = setInterval(() => {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             result.textContent = "타자 연습 종료! 시간을 초과했습니다.";
             typingInput.disabled = true;
-            startBtn.style.display = "block"; // 버튼 다시 보이기
+            englishBtn.style.display = "block"; // 게임 종료 후 버튼 다시 보이기
+            koreanBtn.style.display = "block"; // 게임 종료 후 버튼 다시 보이기
         } else {
             timeLeft--;
             let minutes = Math.floor(timeLeft / 60);
@@ -45,32 +82,31 @@ function startTimer() {
     }, 1000);
 }
 
+// 타이핑 확인 함수
 function checkTyping() {
     let typedText = typingInput.value;
     let displayText = '';
 
-    // 사용자가 입력한 텍스트와 제시된 텍스트를 비교하여 오타 표시
     for (let i = 0; i < typedText.length; i++) {
         if (typedText[i] === currentText[i]) {
-            displayText += `<span class="correct">${typedText[i]}</span>`; // 올바른 글자는 검정색으로 표시
+            displayText += `<span class="correct">${typedText[i]}</span>`;
         } else {
-            displayText += `<span class="incorrect">${typedText[i]}</span>`; // 오타는 빨간색으로 표시
+            displayText += `<span class="incorrect">${typedText[i]}</span>`;
         }
     }
 
-    // 타이핑한 글자만 빨간색으로 표시하고, 입력창 내에서만 보이도록 함
-    typingInput.style.color = "black"; // 타이핑박스의 기본 텍스트 색상은 검정색
+    textDisplay.innerHTML = displayText; // 실시간 타이핑 결과 업데이트
 
-    // 타이핑이 완료되면 게임 종료
     if (typedText === currentText) {
         endTime = new Date().getTime();
-        let timeTaken = (endTime - startTime) / 1000; // 소요 시간(초)
-        let charactersTyped = typedText.length; // 타이핑한 글자 수
-        let cpm = (charactersTyped / timeTaken) * 60; // 1분당 평균 글자 수 (CPM)
+        let timeTaken = (endTime - startTime) / 1000;
+        let charactersTyped = typedText.length;
+        let cpm = (charactersTyped / timeTaken) * 60;
 
         result.textContent = `완료! 소요 시간: ${timeTaken.toFixed(2)}초, 1분당 평균 글자 수: ${cpm.toFixed(2)}`;
         typingInput.disabled = true;
-        clearInterval(timerInterval); // 타이머 멈추기
-        startBtn.style.display = "block"; // 버튼 다시 보이기
+        clearInterval(timerInterval);
+        englishBtn.style.display = "block"; // 게임 종료 후 버튼 다시 보이기
+        koreanBtn.style.display = "block"; // 게임 종료 후 버튼 다시 보이기
     }
 }
