@@ -29,6 +29,7 @@ app.get('/random-quote-ko', (req, res) => {
     } else {
       if (row) {
         console.log('Fetched quote:', row);
+        // 'quote' 필드를 실제 DB 컬럼에 맞게 수정
         res.json({ quote: row.quote }); // 명언 JSON 형식으로 반환
       } else {
         res.status(404).json({ error: '명언을 찾을 수 없습니다.' });
@@ -38,6 +39,7 @@ app.get('/random-quote-ko', (req, res) => {
 });
 
 // 서버 실행
-app.listen(3001, () => {
-  console.log('서버가 http://localhost:3001 에서 실행 중입니다.');
+const PORT = process.env.PORT || 3001; // 포트 번호 환경 변수로 지정 가능
+app.listen(PORT, () => {
+  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });

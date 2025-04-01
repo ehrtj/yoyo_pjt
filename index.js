@@ -110,3 +110,19 @@ function checkTyping() {
         koreanBtn.style.display = "block"; // 게임 종료 후 버튼 다시 보이기
     }
 }
+
+fetch('http://127.0.0.1:3000/random-quote-en', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    mode: 'cors' // 이 줄은 사실 기본 설정이지만, 명시적으로 추가할 수 있습니다.
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log(data);
+    })
+    .catch(error => {
+      console.error('fetch 오류:', error);
+    });
+  
