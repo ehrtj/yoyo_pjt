@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
     startBtn.addEventListener("click", startGame);
     saveRankingBtn.addEventListener("click", () => saveRanking(lastGameTime, lastGameCPM));
 
-    // 🔹 랭킹 탭 버튼 추가
+    // 🔹 랭킹 선택 버튼 추가
     let rankingTab = document.createElement("div");
     rankingTab.innerHTML = `
         <button id="show-ko-ranking">🇰🇷 한국어 랭킹</button>
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
         startBtn.style.display = "block";
         englishBtn.style.display = "none";
         koreanBtn.style.display = "none";
-        rankingDisplay.style.display = "block";  // 🔹 랭킹 보이기
+        rankingDisplay.style.display = "block";
         fetchRandomQuote(selectedLanguage);
         loadRankings(selectedLanguage);
     }
@@ -116,14 +116,10 @@ document.addEventListener("DOMContentLoaded", function () {
         let typedText = typingInput.value;
         let textSpans = textDisplay.querySelectorAll("span");
 
-        let correct = true;
         textSpans.forEach((span, index) => {
-            if (index < typedText.length) {
-                span.style.color = typedText[index] === span.textContent ? "green" : "red";
-                if (typedText[index] !== span.textContent) correct = false;
-            } else {
-                span.style.color = "black";
-            }
+            span.style.color = index < typedText.length 
+                ? (typedText[index] === span.textContent ? "green" : "red") 
+                : "black";
         });
 
         if (typedText === currentText) endGame();
@@ -178,27 +174,38 @@ document.addEventListener("DOMContentLoaded", function () {
             
             const data = await response.json();
             console.log("✅ 랭킹 데이터:", data);
-
+    
             rankingDisplay.innerHTML = `<h2>🏆 ${language === "ko" ? "한국어" : "영어"} 랭킹</h2>`;
-
+    
             if (data.length === 0) {
                 rankingDisplay.innerHTML += '<p>랭킹 데이터가 없습니다.</p>';
                 return;
             }
-
+    
+            // 🔥 CPM 높은 순 정렬 후 표시
+            data.sort((a, b) => b.cpm - a.cpm || a.time - b.time);
+    
             const list = document.createElement('ul');
             data.forEach((rank, index) => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `${index + 1}위: ${rank.name} (${rank.language}) - ⏱ ${rank.time}초 (CPM: ${rank.cpm})`;
+                listItem.textContent = `${index + 1}위: ${rank.name} -  CPM: ${rank.cpm} (⏱ ${rank.time}초)`;
                 list.appendChild(listItem);
             });
-
+    
             rankingDisplay.appendChild(list);
         } catch (error) {
             console.error("❌ 랭킹 불러오기 실패:", error);
         }
     }
+    
 
-    loadRankings("en"); 
-    loadRankings("ko"); 
+    // 🔒 복붙 방지 기능 추가
+    typingInput.addEventListener("paste", event => event.preventDefault());
+    typingInput.addEventListener("contextmenu", event => event.preventDefault());
+    typingInput.addEventListener("keydown", event => {
+        if (event.ctrlKey && (event.key === "v" || event.key === "V")) event.preventDefault();
+    });
+
+    loadRankings("en");
+    loadRankings("ko");
 });

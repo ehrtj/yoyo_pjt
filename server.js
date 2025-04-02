@@ -107,21 +107,51 @@ app.post('/save-ranking', (req, res) => {
 });
 
 // 🏅 랭킹 불러오기 API (언어별 조회)
-app.get('/get-rankings/:lang', (req, res) => {
-  const language = req.params.lang;
+app.get('/get-rankings/:language', (req, res) => {
+  const { language } = req.params;
+  const query = `
+      SELECT * FROM rankings 
+      WHERE language = ? 
+      ORDER BY cpm DESC, time ASC`; // 🏆 CPM 높은 순 정렬
 
-  db.all(
-    `SELECT * FROM rankings WHERE language = ? ORDER BY time ASC LIMIT 5`,
-    [language],
-    (err, rows) => {
+  db.all(query, [language], (err, rows) => {
       if (err) {
-        console.error('❌ 랭킹 불러오기 실패:', err);
-        return res.status(500).json({ error: 'DB 조회 오류' });
+          console.error("랭킹 조회 오류:", err.message);
+          res.status(500).json({ error: "랭킹을 불러오는 데 실패했습니다." });
+      } else {
+          res.json(rows);
       }
-      res.json(rows);
-    }
-  );
+  });
 });
+
+
+app.delete('/delete-ranking/:id', (req, res) => {
+  const id = req.params.id;
+
+  // 먼저 ID가 존재하는지 확인
+  db.get('SELECT * FROM rankings WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      console.error('❌ 데이터 조회 오류:', err.message);
+      return res.status(500).json({ message: '서버 오류로 데이터를 찾을 수 없습니다.' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ message: `❌ ID ${id}가 존재하지 않습니다.` });
+    }
+
+    // 존재하면 삭제 진행
+    db.run('DELETE FROM rankings WHERE id = ?', [id], function (err) {
+      if (err) {
+        console.error('❌ 삭제 오류:', err.message);
+        return res.status(500).json({ message: '데이터 삭제 실패' });
+      }
+
+      res.json({ message: `✅ ID ${id} 삭제 완료`, affectedRows: this.changes });
+    });
+  });
+});
+
+
 
 // 🚀 서버 실행
 const PORT = process.env.PORT || 3000;
