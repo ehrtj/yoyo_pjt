@@ -1,73 +1,130 @@
 const express = require('express');
-const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
+
 const app = express();
-
-const cors = require('cors'); // CORS 미들웨어 추가
-// CORS 설정 (모든 도메인에서 API 호출 허용)
 app.use(cors());
+app.use(express.json());
 
-// SQLite 데이터베이스 연결
+// ✅ SQLite 데이터베이스 연결
 const db = new sqlite3.Database('./quotesDB.db', (err) => {
   if (err) {
-    console.error('데이터베이스 연결 오류:', err.message);
-  } else {
-    console.log('SQLite 연결 성공');
+    console.error('❌ 데이터베이스 연결 오류:', err.message);
+    return;
   }
-});
+  console.log('✅ SQLite 연결 성공');
 
-// HTML 파일 제공
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// /random-quote-en API - 영어 명언 가져오기
-app.get('/random-quote-en', (req, res) => {
-  const query = 'SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1'; // 영어 명언 랜덤 선택
-  console.log('Executing query:', query);
-
-  db.get(query, [], (err, row) => {
+  // ✅ 테이블 구조 확인 (quotes 테이블)
+  db.all("PRAGMA table_info(quotes);", [], (err, rows) => {
     if (err) {
-      console.error('데이터 조회 오류:', err.message);
-      res.status(500).json({ error: '명언을 가져오는 데 실패했습니다.' });
-    } else {
-      if (row) {
-        console.log('Fetched quote:', row);
-        res.json({ quote: row.quote }); // JSON 형식으로 반환
+      console.error('❌ quotes 테이블 정보 조회 오류:', err);
+      return;
+    }
+    console.log('📝 quotes 테이블 구조:', rows);
+  });
+
+  // ✅ quotes 테이블에서 샘플 데이터 확인
+  db.all("SELECT * FROM quotes LIMIT 5;", [], (err, rows) => {
+    if (err) {
+      console.error('❌ quotes 데이터 조회 오류:', err);
+      return;
+    }
+    console.log('📝 quotes 테이블 샘플 데이터:', rows);
+  });
+
+  // ✅ rankings 테이블이 없으면 생성
+  db.run(
+    `CREATE TABLE IF NOT EXISTS rankings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      time REAL,
+      cpm REAL,
+      language TEXT
+    )`,
+    (err) => {
+      if (err) {
+        console.error('❌ rankings 테이블 생성 실패:', err);
       } else {
-        res.status(404).json({ error: '명언을 찾을 수 없습니다.' });
+        console.log('✅ rankings 테이블 확인 완료!');
       }
     }
-  });
+  );
 });
 
-// 한국어 명언 가져오기
+// ✅ 한국어 명언 가져오기 API
 app.get('/random-quote-ko', (req, res) => {
-  const query = 'SELECT * FROM quotes_ko ORDER BY RANDOM() LIMIT 1'; 
-  console.log('Executing query for Korean quote:', query);
+  const query = 'SELECT * FROM quotes_ko ORDER BY RANDOM() LIMIT 1';
 
   db.get(query, [], (err, row) => {
     if (err) {
-      console.error('데이터 조회 오류:', err.message);
-      res.status(500).json({ error: '한국어 명언을 가져오는 데 실패했습니다.' });
+      console.error('❌ 한국어 명언 조회 오류:', err);
+      return res.status(500).json({ error: 'DB 조회 오류' });
+    }
+    if (row) {
+      res.json({ quote: row.text });
     } else {
-      console.log('Fetched Korean quote:', row);  // ✅ row 값 확인!
-      if (row) {
-        res.json({ quote: row.text });  // 🔥 "row.quote" → "row.text" 수정!!
-      } else {
-        res.status(404).json({ error: '한국어 명언을 찾을 수 없습니다.' });
-      }
+      res.status(404).json({ error: '명언을 찾을 수 없습니다.' });
     }
   });
 });
 
+// ✅ 영어 명언 가져오기 API (오류 수정!)
+app.get('/random-quote-en', (req, res) => {
+  const query = 'SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1';
 
+  db.get(query, [], (err, row) => {
+    if (err) {
+      console.error('❌ 영어 명언 조회 오류:', err);
+      return res.status(500).json({ error: 'DB 조회 오류' });
+    }
+    if (row) {
+      res.json({ quote: row.quote, author: row.author }); // 🔥 수정된 부분!
+    } else {
+      res.status(404).json({ error: '명언을 찾을 수 없습니다.' });
+    }
+  });
+});
 
+// 🏆 랭킹 저장 API
+app.post('/save-ranking', (req, res) => {
+  const { name, time, cpm, language } = req.body;
 
+  if (!name || !time || !cpm || !language) {
+    return res.status(400).json({ error: '잘못된 데이터' });
+  }
 
+  db.run(
+    `INSERT INTO rankings (name, time, cpm, language) VALUES (?, ?, ?, ?)`,
+    [name, time, cpm, language],
+    function (err) {
+      if (err) {
+        console.error('❌ 랭킹 저장 실패:', err);
+        return res.status(500).json({ error: 'DB 저장 오류' });
+      }
+      res.json({ success: true, id: this.lastID });
+    }
+  );
+});
 
-// 서버 실행 (환경 변수 PORT 사용, 기본값 3000)
+// 🏅 랭킹 불러오기 API (언어별 조회)
+app.get('/get-rankings/:lang', (req, res) => {
+  const language = req.params.lang;
+
+  db.all(
+    `SELECT * FROM rankings WHERE language = ? ORDER BY time ASC LIMIT 5`,
+    [language],
+    (err, rows) => {
+      if (err) {
+        console.error('❌ 랭킹 불러오기 실패:', err);
+        return res.status(500).json({ error: 'DB 조회 오류' });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+// 🚀 서버 실행
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+  console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });

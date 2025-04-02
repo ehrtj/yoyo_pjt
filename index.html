@@ -3,35 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>명언 타자 연습</title>
+  <title>🌊 명언 타자 연습</title>
   <style>
+    /* 기본 스타일 */
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Arial', sans-serif;
       text-align: center;
-      margin: 20px;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #ffffff; /* 배경은 흰색 유지 */
+      color: #004080;
     }
+
+    h1 {
+      font-size: 36px;
+      font-weight: bold;
+      color: #007acc;
+    }
+
+    /* 명언 표시 박스 */
     #quote-container {
-      font-size: 24px;
-      margin-top: 20px;
-      min-height: 50px;
+      font-size: 22px;
+      font-weight: bold;
+      background: #f0f8ff; /* 연한 하늘색 */
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 60%;
+      min-height: 80px;
+      margin-top: 15px;
+      color: #003366;
     }
+
+    /* 입력창 스타일 */
     input {
       width: 60%;
       font-size: 18px;
-      padding: 10px;
+      padding: 12px;
       margin-top: 20px;
-      display: none; /* 초기에는 숨김 */
+      border: 2px solid #007acc;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #003366;
+      outline: none;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
+
+    /* 버튼 스타일 */
     button {
-      padding: 10px 20px;
+      padding: 12px 24px;
       margin: 10px;
-      font-size: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(to right, #0099ff, #007acc);
+      color: white;
       cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
+
+    button:hover {
+      background: #005f99;
+      transform: scale(1.05);
+    }
+
+    /* 타이머 스타일 */
     #timer {
+      font-size: 22px;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #007acc;
+    }
+
+    /* 결과 출력 스타일 */
+    #result {
       font-size: 20px;
-      margin-top: 10px;
-      display: none;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #ff6600;
     }
   </style>
 </head>
@@ -39,13 +96,16 @@
   <h1>명언 타자 연습</h1>
   <button id="get-en-quote">영어 명언 가져오기</button>
   <button id="get-ko-quote">한국어 명언 가져오기</button>
-  <button id="startBtn" style="display: none;">게임 시작</button>
+  <button id="startBtn" style="display: none;">🏁 게임 시작</button>
 
-  <div id="quote-container"></div>
+  <div id="quote-container">여기에 명언이 표시됩니다.</div>
   <input type="text" id="typing-input" placeholder="여기에 타이핑하세요..." disabled>
-  <div id="timer"></div>
+  <div id="timer">⏳ 00:00</div>
   <div id="result"></div>
+  <button id="saveRankingBtn" style="display: none;">랭킹 등록하기</button>
+  <div id="ranking-container"></div>
 
   <script src="index.js"></script>
+  
 </body>
 </html>
