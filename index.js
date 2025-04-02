@@ -14,16 +14,12 @@ document.addEventListener("DOMContentLoaded", function () {
     let timerInterval;
     let timeLeft = 300;
     let selectedLanguage = '';
-    
+
     let lastGameTime = 0;
     let lastGameCPM = 0;
 
     saveRankingBtn.textContent = "🏆 랭킹 등록하기";
     saveRankingBtn.style.display = "none";
-    saveRankingBtn.style.marginTop = "10px";
-    saveRankingBtn.style.padding = "10px 20px";
-    saveRankingBtn.style.fontSize = "16px";
-    saveRankingBtn.style.cursor = "pointer";
     document.body.appendChild(saveRankingBtn);
 
     englishBtn.addEventListener("click", () => selectLanguage("en"));
@@ -31,13 +27,25 @@ document.addEventListener("DOMContentLoaded", function () {
     startBtn.addEventListener("click", startGame);
     saveRankingBtn.addEventListener("click", () => saveRanking(lastGameTime, lastGameCPM));
 
+    // 🔹 랭킹 탭 버튼 추가
+    let rankingTab = document.createElement("div");
+    rankingTab.innerHTML = `
+        <button id="show-ko-ranking">🇰🇷 한국어 랭킹</button>
+        <button id="show-en-ranking">🇺🇸 영어 랭킹</button>
+    `;
+    document.body.appendChild(rankingTab);
+
+    document.getElementById("show-ko-ranking").addEventListener("click", () => loadRankings("ko"));
+    document.getElementById("show-en-ranking").addEventListener("click", () => loadRankings("en"));
+
     function selectLanguage(language) {
         selectedLanguage = language;
         startBtn.style.display = "block";
         englishBtn.style.display = "none";
         koreanBtn.style.display = "none";
+        rankingDisplay.style.display = "block";  // 🔹 랭킹 보이기
         fetchRandomQuote(selectedLanguage);
-        loadRankings(selectedLanguage);  // 🏆 언어 선택 시 랭킹도 불러오기!
+        loadRankings(selectedLanguage);
     }
 
     async function fetchRandomQuote(language) {
@@ -78,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
         result.textContent = '';
         timerDisplay.style.display = "block";
         saveRankingBtn.style.display = "none";
+        rankingDisplay.style.display = "none";  // 🔹 게임 중에는 랭킹 숨김!
 
         startBtn.style.display = "none";
         startTimer();
@@ -91,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 clearInterval(timerInterval);
                 result.textContent = "⏳ 타자 연습 종료! 시간을 초과했습니다.";
                 typingInput.disabled = true;
-                resetGameUI();
+                rankingDisplay.style.display = "block"; // 🔹 게임 끝나면 랭킹 다시 보이기!
             } else {
                 timeLeft--;
                 let minutes = Math.floor(timeLeft / 60);
@@ -102,10 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     typingInput.addEventListener("input", () => {
-        if (!startTime) {
-            startTime = new Date().getTime();
-            console.warn("⚠️ startTime 자동 설정:", startTime);
-        }
+        if (!startTime) startTime = new Date().getTime();
 
         let typedText = typingInput.value;
         let textSpans = textDisplay.querySelectorAll("span");
@@ -113,34 +119,23 @@ document.addEventListener("DOMContentLoaded", function () {
         let correct = true;
         textSpans.forEach((span, index) => {
             if (index < typedText.length) {
-                if (typedText[index] === span.textContent) {
-                    span.style.color = "green";
-                } else {
-                    span.style.color = "red";
-                    correct = false;
-                }
+                span.style.color = typedText[index] === span.textContent ? "green" : "red";
+                if (typedText[index] !== span.textContent) correct = false;
             } else {
                 span.style.color = "black";
             }
         });
 
-        if (typedText === currentText) {
-            endGame();
-        }
+        if (typedText === currentText) endGame();
     });
 
     function endGame() {
         let endTime = new Date().getTime();
-        console.log("🏁 게임 종료:", endTime);
-
         let timeTaken = (endTime - startTime) / 1000;
         let cpm = (currentText.length / timeTaken) * 60;
 
         lastGameTime = timeTaken;
         lastGameCPM = cpm;
-
-        console.log(`⌛ 소요 시간: ${timeTaken.toFixed(2)}초`);
-        console.log(`⚡ CPM: ${cpm.toFixed(2)}`);
 
         result.textContent = `🎉 완료! 소요 시간: ${timeTaken.toFixed(2)}초, 타수: ${cpm.toFixed(2)}`;
         
@@ -148,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function () {
         clearInterval(timerInterval);
 
         saveRankingBtn.style.display = "block"; 
+        rankingDisplay.style.display = "block";  // 🔹 게임 끝나면 랭킹 다시 보이기!
     }
 
     async function saveRanking(time, cpm) {
@@ -183,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
             console.log("✅ 랭킹 데이터:", data);
 
-            rankingDisplay.innerHTML = '<h2>🏆 랭킹</h2>'; // 기존 내용 초기화
+            rankingDisplay.innerHTML = `<h2>🏆 ${language === "ko" ? "한국어" : "영어"} 랭킹</h2>`;
 
             if (data.length === 0) {
                 rankingDisplay.innerHTML += '<p>랭킹 데이터가 없습니다.</p>';
@@ -193,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const list = document.createElement('ul');
             data.forEach((rank, index) => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `${index + 1}위: ${rank.name} - ⏱ ${rank.time}초 (CPM: ${rank.cpm})`;
+                listItem.textContent = `${index + 1}위: ${rank.name} (${rank.language}) - ⏱ ${rank.time}초 (CPM: ${rank.cpm})`;
                 list.appendChild(listItem);
             });
 
